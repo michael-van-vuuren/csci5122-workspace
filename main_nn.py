@@ -6,7 +6,8 @@ import pygame
 import neat
 import neat_visualizer
 
-import game_objects
+import classes
+import objects
 import renderer
 
 
@@ -20,45 +21,15 @@ clock = pygame.time.Clock()
 r = renderer.Renderer(screen)
 
 
-# holds all the game objects 
-@dataclass
-class GameObjects:
-    rocket: game_objects.Rocket
-    clouds: list[game_objects.Cloud]
-    cow: game_objects.Cow
-    info: game_objects.Info
-    background: game_objects.Background
-    ground: game_objects.Ground
-    platform: game_objects.Platform
 
-
-# instantiates the game objects
-def create_objects(gen_id=None, fitness=None):
-    rocket = game_objects.Rocket(SCREEN_W)
-    clouds = [game_objects.Cloud(SCREEN_W) for _ in range(7)]
-    cow = game_objects.Cow()
-    info = game_objects.Info(gen_id=gen_id, fitness=fitness)
-    background = game_objects.Background()
-    ground = game_objects.Ground()
-    platform = game_objects.Platform()
-
-    return GameObjects(
-        rocket=rocket,
-        clouds=clouds,
-        cow=cow,
-        info=info,
-        background=background,
-        ground=ground,
-        platform=platform
-    )
 
 
 # fitness function (kinda like a reward function in reinforcement learning)
 def fitness_function(rocket):
     # calculate the euclidian distance from rocket to platform
-    center_x = game_objects.PLAT_X + game_objects.PLAT_W / 2
+    center_x = classes.PLAT_X + classes.PLAT_W / 2
     dtp_x = abs(rocket.x - center_x)
-    dtp_y = abs(rocket.y - game_objects.PLAT_Y)
+    dtp_y = abs(rocket.y - classes.PLAT_Y)
     dtp = math.sqrt(dtp_x**2 + dtp_y**2)
 
     # calculate upright deviation angle
@@ -89,7 +60,7 @@ def fitness_function(rocket):
 
         time_bonus = max(0, 500 - rocket.time_taken) * 0.5
         fitness += time_bonus
-    if rocket.time_taken >= game_objects.MAX_TIME and rocket.game_state == 'RUNNING':       
+    if rocket.time_taken >= classes.MAX_TIME and rocket.game_state == 'RUNNING':       
         fitness -= 200                                       # hovering in the air            = decrease
 
     return fitness
@@ -122,13 +93,13 @@ def replay(genome, config, gen_id):
 def run_simulation(genome, config, gen_id=None, on_step=None, should_skip=None):
     net = neat.nn.FeedForwardNetwork.create(genome, config)
 
-    objects = create_objects(gen_id=gen_id, fitness=genome.fitness)
-    rocket = objects.rocket
-    clouds = objects.clouds
+    objs = objects.create_objects(gen_id=gen_id, fitness=genome.fitness)
+    rocket = objs.rocket
+    clouds = objs.clouds
 
     dt = 1 / 60.0
 
-    for _ in range(game_objects.MAX_TIME):
+    for _ in range(classes.MAX_TIME):
         if should_skip and should_skip():
             break
 
@@ -143,7 +114,7 @@ def run_simulation(genome, config, gen_id=None, on_step=None, should_skip=None):
         rocket.step(action, dt, mode='nn')
         
         if on_step:
-            on_step(objects)
+            on_step(objs)
 
         # rocket has crashed or landed
         if rocket.game_state != 'RUNNING':
@@ -156,11 +127,11 @@ def run_simulation(genome, config, gen_id=None, on_step=None, should_skip=None):
 # called automatically by NEAT for each generation
 def eval_genomes(genomes, config):
     for id, genome in genomes:
-        if game_objects.RANDOM_X_SPAWN or game_objects.RANDOM_Y_SPAWN:
+        if classes.RANDOM_X_SPAWN or classes.RANDOM_Y_SPAWN:
             fitness_sum = 0.0
-            for _ in range(game_objects.NUM_EPISODES_PER_GENOME):
+            for _ in range(classes.NUM_EPISODES_PER_GENOME):
                 fitness_sum += run_simulation(genome, config)
-            genome.fitness = fitness_sum / game_objects.NUM_EPISODES_PER_GENOME
+            genome.fitness = fitness_sum / classes.NUM_EPISODES_PER_GENOME
         else:
             genome.fitness = run_simulation(genome, config)
 
@@ -205,9 +176,9 @@ def run_neat(config_file):
 
 
 def run_player():
-    objects = create_objects()
-    rocket = objects.rocket
-    clouds = objects.clouds
+    objs = objects.create_objects()
+    rocket = objs.rocket
+    clouds = objs.clouds
 
     running = True
     while running:
@@ -228,7 +199,7 @@ def run_player():
         keys = pygame.key.get_pressed()
         rocket.step(keys, dt, mode='player')
 
-        r.draw(objects) 
+        r.draw(objs) 
 
 
 # main
@@ -238,7 +209,7 @@ def main():
     parser.add_argument('--train', action='store_true', help='run NEAT training')
     args = parser.parse_args()
 
-    game_objects.WIND_SPEED = args.wind    
+    classes.WIND_SPEED = args.wind    
 
     if args.train:
         # nn controlled version

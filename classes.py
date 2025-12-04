@@ -183,13 +183,13 @@ class Rocket:
     # network inputs
     def get_inputs(self):
         return [
-            self.x / SCREEN_W,      # -1 (x-pos)
-            self.y / SCREEN_H,      # -2 (y-pos)
-            self.vx / 100.0,        # -3 (x-velocity)
-            self.vy / 100.0,        # -4 (y-velocity)
-            self.theta,             # -5 (angle)
-            self.omega,             # -6 (angular velocity)
-            config.WIND_SPEED / 20.0       # -7 (wind sensor)
+            self.x / SCREEN_W,       # -1 (x-pos)
+            self.y / SCREEN_H,       # -2 (y-pos)
+            self.vx / 100.0,         # -3 (x-velocity)
+            self.vy / 100.0,         # -4 (y-velocity)
+            self.theta,              # -5 (angle)
+            self.omega,              # -6 (angular velocity)
+            config.WIND_SPEED / 20.0 # -7 (wind sensor)
         ]
 
     def step(self, control_input, dt, mode='player'):

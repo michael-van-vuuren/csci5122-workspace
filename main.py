@@ -1,12 +1,12 @@
 import argparse
-import math
 import pygame
 
 import neat
 import neat_visualizer
 
-import objects
-import renderer
+from objects import create_objects
+from renderer import Renderer
+from fitness import fitness_function
 import config
 from config import *
 
@@ -16,54 +16,12 @@ screen = pygame.display.set_mode((SCREEN_W, SCREEN_H))
 clock = pygame.time.Clock()
 
 # used to draw each update
-r = renderer.Renderer(screen)
-
-
-# fitness function (kinda like a reward function in reinforcement learning)
-def fitness_function(rocket):
-    # calculate the euclidian distance from rocket to platform
-    center_x = PLAT_X + PLAT_W / 2
-    dtp_x = abs(rocket.x - center_x)
-    dtp_y = abs(rocket.y - PLAT_Y)
-    dtp = math.sqrt(dtp_x**2 + dtp_y**2)
-
-    # calculate upright deviation angle
-    angle_deviation = abs(rocket.theta - (-math.pi/2)) 
-    
-    fitness = -100.0                                         # 1. running rewards               fitness
-    fitness += (1000 - dtp) / 10.0                           # closer distance to platform    = increase
-    fitness += (3.0 - angle_deviation) * 10                  # upright angle                  = increase
-
-    fuel_penalty = rocket.fuel_used * 0.5                    # more fuel use                  = decrease
-    fitness -= fuel_penalty
-
-    wall_threshold = 50                                      # use screen walls for stability = decrease
-    if rocket.x < wall_threshold:
-        fitness -= (wall_threshold - rocket.x) * 2
-    elif rocket.x > SCREEN_W - wall_threshold:
-        fitness -= (rocket.x - (SCREEN_W - wall_threshold)) * 2
-
-    if rocket.game_state == 'EXPLODED':                      # 2. end state rewards
-        fitness -= 50                                        # crashed                        = decrease
-        fitness += (SCREEN_W/2 - dtp_x) * 0.4                # crashed closer to center       = increase
-        fitness += max(0, 200 - rocket.speed) * 0.5          # softer crash                   = increase
-    elif rocket.game_state == 'LANDED':
-        fitness += 200                                       # landed                         = increase
-        fitness += (200 - dtp_x)                             # landed closer to center        = increase
-        fitness += max(0, (20 - rocket.speed) * 3)           # softer landing                 = increase
-        fitness -= angle_deviation * 150                     # less upright landing           = decrease
-
-        time_bonus = max(0, 500 - rocket.time_taken) * 0.5
-        fitness += time_bonus
-    if rocket.time_taken >= MAX_TIME and rocket.game_state == 'RUNNING':       
-        fitness -= 200                                       # hovering in the air            = decrease
-
-    return fitness
+renderer = Renderer(screen)
 
 
 def replay(genome, config, gen_id):
     def on_step(objects):
-        r.draw(objects)
+        renderer.draw(objects)
         clock.tick(60)
 
     def should_skip():
@@ -88,9 +46,9 @@ def replay(genome, config, gen_id):
 def run_simulation(genome, config, gen_id=None, on_step=None, should_skip=None):
     net = neat.nn.FeedForwardNetwork.create(genome, config)
 
-    objs = objects.create_objects(gen_id=gen_id, fitness=genome.fitness)
-    rocket = objs.rocket
-    clouds = objs.clouds
+    objects = create_objects(gen_id=gen_id, fitness=genome.fitness)
+    rocket = objects.rocket
+    clouds = objects.clouds
 
     dt = 1 / 60.0
 
@@ -109,7 +67,7 @@ def run_simulation(genome, config, gen_id=None, on_step=None, should_skip=None):
         rocket.step(action, dt, mode='nn')
         
         if on_step:
-            on_step(objs)
+            on_step(objects)
 
         # rocket has crashed or landed
         if rocket.game_state != 'RUNNING':
@@ -171,9 +129,9 @@ def run_neat(config_file):
 
 
 def run_player():
-    objs = objects.create_objects()
-    rocket = objs.rocket
-    clouds = objs.clouds
+    objects = create_objects()
+    rocket = objects.rocket
+    clouds = objects.clouds
 
     running = True
     while running:
@@ -194,7 +152,7 @@ def run_player():
         keys = pygame.key.get_pressed()
         rocket.step(keys, dt, mode='player')
 
-        r.draw(objs) 
+        renderer.draw(objects) 
 
 
 # main

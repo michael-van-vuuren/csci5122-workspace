@@ -1,12 +1,14 @@
-import pygame
 import argparse
-import math
 from dataclasses import dataclass
+import math
+import pygame
 
 import neat
 import neat_visualizer
 
 import game_objects
+import renderer
+
 
 pygame.init()
 
@@ -14,8 +16,8 @@ SCREEN_W, SCREEN_H = 600, 850
 screen = pygame.display.set_mode((SCREEN_W, SCREEN_H))
 clock = pygame.time.Clock()
 
-FONT = pygame.font.SysFont(None, 24)
-BIG_FONT = pygame.font.Font(None, 74)
+# used to draw each update
+r = renderer.Renderer(screen)
 
 
 # holds all the game objects 
@@ -49,39 +51,6 @@ def create_objects(gen_id=None, fitness=None):
         ground=ground,
         platform=platform
     )
-
-
-def draw(renderer, objects):
-    shapes = []
-    
-    # background, ground, platform, and cow
-    shapes.append(objects.background.get_shapes())
-    shapes.append(objects.ground.get_shapes())
-    shapes.append(objects.platform.get_shapes())
-    shapes.extend(objects.cow.get_shapes())
-    
-    # clouds 
-    for cloud in objects.clouds:
-        shapes.extend(cloud.get_shapes())
-    
-    # rocket (with flame and crash message)
-    rocket_shapes = objects.rocket.get_shapes()
-    for shape in rocket_shapes:
-        if shape['type'] == 'text':
-             renderer.font = BIG_FONT
-    shapes.extend(rocket_shapes)
-
-    renderer.draw(shapes)
-
-    # top left info
-    renderer.font = FONT
-    info_shapes = objects.info.get_shapes(objects.rocket)
-
-    renderer.draw(info_shapes)
-
-    pygame.display.flip()
-
-
 
 
 # fitness function (kinda like a reward function in reinforcement learning)
@@ -132,9 +101,6 @@ def run_simulation(genome, config, draw_mode=False, gen_id=None):
     objects = create_objects(gen_id=gen_id, fitness=genome.fitness)
     rocket = objects.rocket
     clouds = objects.clouds
-    
-    # used to draw each update
-    renderer = game_objects.Renderer(screen)
 
     dt = 1 / 60.0
 
@@ -159,7 +125,7 @@ def run_simulation(genome, config, draw_mode=False, gen_id=None):
             for cloud in clouds:
                 cloud.update(dt)
             
-            draw(renderer, objects)
+            r.draw(objects)
             clock.tick(60)
 
         # rocket has crashed or landed
@@ -168,7 +134,6 @@ def run_simulation(genome, config, draw_mode=False, gen_id=None):
 
     # return fitness
     return fitness_function(rocket)
-
 
 
 # called automatically by NEAT for each generation
@@ -227,8 +192,6 @@ def run_player():
     rocket = objects.rocket
     clouds = objects.clouds
 
-    renderer = game_objects.Renderer(screen)
-
     running = True
     while running:
         dt = clock.tick(60) / 1000.0
@@ -246,7 +209,7 @@ def run_player():
         for cloud in clouds:
             cloud.update(dt)
 
-        draw(renderer, objects) 
+        r.draw(objects) 
 
 
 # main

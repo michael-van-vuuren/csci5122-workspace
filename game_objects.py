@@ -2,6 +2,7 @@ import pygame
 import math
 import random
 
+
 SCREEN_W, SCREEN_H = 600, 850
 
 COLOR_BACKGROUND = (21, 129, 191)
@@ -52,68 +53,6 @@ MAX_TIME = 1000
 RANDOM_X_SPAWN = False
 RANDOM_Y_SPAWN = False
 NUM_EPISODES_PER_GENOME = 3
-
-
-# the renderer uses pygame to draw the moving and static objects
-class Renderer:
-    def __init__(self, screen):
-        self.screen = screen
-
-    def draw(self, shapes):
-        for shape in shapes:
-            shape_type = shape['type']
-            
-            # background
-            if shape_type == 'fill':
-                self.screen.fill(shape['color'])
-
-            # rectangles
-            elif shape_type == 'rect':
-                pygame.draw.rect(self.screen, shape['color'], shape['rect'])
-
-            # ovals
-            elif shape_type == 'ellipse':
-                pygame.draw.ellipse(self.screen, shape['color'], shape['rect'])
-
-            # circles
-            elif shape_type == 'circle':
-                if 'alpha' in shape:
-                    r = shape['radius']
-                    surface = pygame.Surface((r*2, r*2), pygame.SRCALPHA)
-                    pygame.draw.circle(surface, shape['color'], (r, r), r)
-                    self.screen.blit(surface, (shape['position'][0], shape['position'][1]))
-                else:
-                    pygame.draw.circle(self.screen, shape['color'], shape['position'], shape['radius'], shape.get('width', 0))
-
-            # straight lines
-            elif shape_type == 'line':
-                pygame.draw.line(self.screen, shape['color'], shape['start'], shape['end'], shape['width'])
-
-            # flame triangles
-            elif shape_type == 'polygon':
-                pygame.draw.polygon(self.screen, shape['color'], shape['points'])
-
-            # the rocket body
-            elif shape_type == 'rocket':
-                surf = pygame.Surface(shape['size'], pygame.SRCALPHA)
-                pygame.draw.rect(surf, shape['color'], (0, 0, shape['size'][0], shape['size'][1]))
-                rotated = pygame.transform.rotate(surf, -math.degrees(shape['angle']))
-                rect = rotated.get_rect(center=shape['center'])
-                self.screen.blit(rotated, rect)
-
-            # text
-            elif shape_type == 'text':
-                shadow = self.font.render(shape['content'], True, (0, 0, 0))
-                text = self.font.render(shape['content'], True, shape['color'])
-                if 'center' in shape:
-                    s_rect = shadow.get_rect(center=shape['center'])
-                    t_rect = text.get_rect(center=shape['center'])
-                else:
-                    s_rect = pygame.Rect(shape['position'], (0,0))
-                    t_rect = pygame.Rect(shape['position'], (0,0))
-                offset = shape.get('shadow_offset', (2, 2))
-                self.screen.blit(shadow, (s_rect.x + offset[0], s_rect.y + offset[1]))
-                self.screen.blit(text, t_rect)
 
 
 # cow class

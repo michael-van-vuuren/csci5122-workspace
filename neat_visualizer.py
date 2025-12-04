@@ -12,7 +12,6 @@ from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
 
 
-
 # fonts
 FONT_PATH = '/System/Library/Fonts/Supplemental/Menlo.ttc'
 FONT              = ImageFont.truetype(FONT_PATH, 32, index=0)
@@ -36,6 +35,7 @@ ACTIVATION_ABBREV = {
     'sigmoid': 'σ',
     'relu':    'r'
 }
+
 
 class Canvas:
     # creates a blank canvas and drawing object
@@ -79,6 +79,7 @@ class Canvas:
                 frame.save(os.path.join(directory, f'frame_{i:03d}.png'), 'PNG')
             imageio.mimsave(filename, self.frames, duration=duration, loop=0)
 
+
 class TrackedGenome(neat.DefaultGenome):
     def __init__(self, key):
         super().__init__(key)
@@ -97,6 +98,7 @@ class TrackedGenome(neat.DefaultGenome):
         self.parent1_id = genome.key
         self.parent2_id = None
         prune_dead_nodes(self, config)
+
 
 def prune_dead_nodes(genome, config):
     input_keys = set(getattr(config, 'input_keys', []))
@@ -141,6 +143,7 @@ def prune_dead_nodes(genome, config):
     # remove nodes in prune
     for node in prune:
         del genome.nodes[node]
+
 
 class Visualizer(neat.reporting.BaseReporter):
     # width and height of a single network (networks are visualized side by side)
@@ -381,6 +384,7 @@ class Visualizer(neat.reporting.BaseReporter):
         # genome id
         self.window.draw_text(x_offset + 300, H - 50, genome_id, color=COLOR_BLACK, font=FONT)
 
+
 # forward pass predictions on NEAT nn
 def predict_and_score(nn, X, y, num_outputs=None):
     correct = 0
@@ -397,6 +401,7 @@ def predict_and_score(nn, X, y, num_outputs=None):
             correct += 1
 
     return correct, predictions
+
 
 def make_fitness_function(train_x, train_y, num_outputs=1, loss_type='accuracy'):
         # fitness function (kinda like a reward function in reinforcement learning)
@@ -421,6 +426,7 @@ def make_fitness_function(train_x, train_y, num_outputs=1, loss_type='accuracy')
                 genome.fitness = fitness - (alpha * num_conns)
                 
         return fitness_function
+
 
 # main
 def main(config_file, train_x, train_y, test_x, test_y, loss_type=None):
@@ -461,6 +467,7 @@ def main(config_file, train_x, train_y, test_x, test_y, loss_type=None):
     # save the gif
     visualizer.window.save_frames(visualizer.filename, visualizer.directory)
 
+
 # modify the num_inputs, num_outputs, and fitness_threshold parameters in the config file
 def update_config_io(X, y, fitness_threshold, config_file):
     config = configparser.ConfigParser()
@@ -483,6 +490,7 @@ def update_config_io(X, y, fitness_threshold, config_file):
 
     with open(config_file, 'w') as f: config.write(f)
     print(f'Config updated: num_inputs={num_inputs}, num_outputs={num_outputs}')
+
 
 # examples
 if __name__ == '__main__':

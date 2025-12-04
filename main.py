@@ -1,19 +1,17 @@
 import argparse
-from dataclasses import dataclass
 import math
 import pygame
 
 import neat
 import neat_visualizer
 
-import classes
 import objects
 import renderer
+import config
+from config import *
 
 
 pygame.init()
-
-SCREEN_W, SCREEN_H = 600, 850
 screen = pygame.display.set_mode((SCREEN_W, SCREEN_H))
 clock = pygame.time.Clock()
 
@@ -21,15 +19,12 @@ clock = pygame.time.Clock()
 r = renderer.Renderer(screen)
 
 
-
-
-
 # fitness function (kinda like a reward function in reinforcement learning)
 def fitness_function(rocket):
     # calculate the euclidian distance from rocket to platform
-    center_x = classes.PLAT_X + classes.PLAT_W / 2
+    center_x = PLAT_X + PLAT_W / 2
     dtp_x = abs(rocket.x - center_x)
-    dtp_y = abs(rocket.y - classes.PLAT_Y)
+    dtp_y = abs(rocket.y - PLAT_Y)
     dtp = math.sqrt(dtp_x**2 + dtp_y**2)
 
     # calculate upright deviation angle
@@ -60,7 +55,7 @@ def fitness_function(rocket):
 
         time_bonus = max(0, 500 - rocket.time_taken) * 0.5
         fitness += time_bonus
-    if rocket.time_taken >= classes.MAX_TIME and rocket.game_state == 'RUNNING':       
+    if rocket.time_taken >= MAX_TIME and rocket.game_state == 'RUNNING':       
         fitness -= 200                                       # hovering in the air            = decrease
 
     return fitness
@@ -99,7 +94,7 @@ def run_simulation(genome, config, gen_id=None, on_step=None, should_skip=None):
 
     dt = 1 / 60.0
 
-    for _ in range(classes.MAX_TIME):
+    for _ in range(MAX_TIME):
         if should_skip and should_skip():
             break
 
@@ -127,11 +122,11 @@ def run_simulation(genome, config, gen_id=None, on_step=None, should_skip=None):
 # called automatically by NEAT for each generation
 def eval_genomes(genomes, config):
     for id, genome in genomes:
-        if classes.RANDOM_X_SPAWN or classes.RANDOM_Y_SPAWN:
+        if RANDOM_X_SPAWN or RANDOM_Y_SPAWN:
             fitness_sum = 0.0
-            for _ in range(classes.NUM_EPISODES_PER_GENOME):
+            for _ in range(NUM_EPISODES_PER_GENOME):
                 fitness_sum += run_simulation(genome, config)
-            genome.fitness = fitness_sum / classes.NUM_EPISODES_PER_GENOME
+            genome.fitness = fitness_sum / NUM_EPISODES_PER_GENOME
         else:
             genome.fitness = run_simulation(genome, config)
 
@@ -209,7 +204,7 @@ def main():
     parser.add_argument('--train', action='store_true', help='run NEAT training')
     args = parser.parse_args()
 
-    classes.WIND_SPEED = args.wind    
+    config.WIND_SPEED = args.wind    
 
     if args.train:
         # nn controlled version

@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 import classes
-
-SCREEN_W = 600
+from config import SCREEN_W
 
 # holds all the game objects 
 @dataclass

@@ -94,8 +94,32 @@ def fitness_function(rocket):
 
     return fitness
 
+
+def replay(genome, config, gen_id):
+    def on_step(objects):
+        r.draw(objects)
+        clock.tick(60)
+
+    def should_skip():
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                exit()
+            elif event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
+                return True
+        return False
+    
+    run_simulation(
+        genome,
+        config,
+        gen_id=gen_id,
+        on_step=on_step,
+        should_skip=should_skip
+    )
+
+
 # runs a replay of a simulation on a genome
-def run_simulation(genome, config, draw_mode=False, gen_id=None):
+def run_simulation(genome, config, gen_id=None, on_step=None, should_skip=None):
     net = neat.nn.FeedForwardNetwork.create(genome, config)
 
     objects = create_objects(gen_id=gen_id, fitness=genome.fitness)
@@ -105,28 +129,21 @@ def run_simulation(genome, config, draw_mode=False, gen_id=None):
     dt = 1 / 60.0
 
     for _ in range(game_objects.MAX_TIME):
-        if draw_mode:
-            # 1. quit or skip replay
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    pygame.quit()
-                    exit()
-                elif event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
-                    return fitness_function(rocket)
+        if should_skip and should_skip():
+            break
+
+        # game rendering
+        for cloud in clouds:
+            cloud.update(dt)
         
-        # 2. get current network inputs, do forward pass on genome network,
+        # get current network inputs, do forward pass on genome network,
         # save outputs as action probabilities, then take a step using the actions 
         inputs = rocket.get_inputs()
         action = net.activate(inputs)
         rocket.step(action, dt, mode='nn')
-
-        # 3. game rendering
-        if draw_mode:
-            for cloud in clouds:
-                cloud.update(dt)
-            
-            r.draw(objects)
-            clock.tick(60)
+        
+        if on_step:
+            on_step(objects)
 
         # rocket has crashed or landed
         if rocket.game_state != 'RUNNING':
@@ -142,10 +159,10 @@ def eval_genomes(genomes, config):
         if game_objects.RANDOM_X_SPAWN or game_objects.RANDOM_Y_SPAWN:
             fitness_sum = 0.0
             for _ in range(game_objects.NUM_EPISODES_PER_GENOME):
-                fitness_sum += run_simulation(genome, config, draw_mode=False)
+                fitness_sum += run_simulation(genome, config)
             genome.fitness = fitness_sum / game_objects.NUM_EPISODES_PER_GENOME
         else:
-            genome.fitness = run_simulation(genome, config, draw_mode=False)
+            genome.fitness = run_simulation(genome, config)
 
 
 def run_neat(config_file):
@@ -181,7 +198,7 @@ def run_neat(config_file):
             print('Skipping replay')
         else:
             print('Replaying best genome')
-            run_simulation(best_genome, config, draw_mode=True, gen_id=i)   
+            replay(best_genome, config, gen_id=i)   
 
     visualizer.filename = 'rocket_evolution.gif'
     visualizer.window.save_frames(visualizer.filename, visualizer.directory)
@@ -196,6 +213,10 @@ def run_player():
     while running:
         dt = clock.tick(60) / 1000.0
 
+        # game rendering
+        for cloud in clouds:
+            cloud.update(dt)
+
         # quit or reset
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -206,8 +227,6 @@ def run_player():
         # game control
         keys = pygame.key.get_pressed()
         rocket.step(keys, dt, mode='player')
-        for cloud in clouds:
-            cloud.update(dt)
 
         r.draw(objects) 
 

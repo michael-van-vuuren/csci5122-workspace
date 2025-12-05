@@ -1,8 +1,11 @@
 import neat
 import neat_visualizer
 
-from simulation import run_simulation, replay
+import simulation
+from simulation import Simulation
 from config import *
+
+simulation = Simulation()
 
 # called automatically by NEAT for each generation
 def eval_genomes(genomes, config):
@@ -10,10 +13,10 @@ def eval_genomes(genomes, config):
         if RANDOM_X_SPAWN or RANDOM_Y_SPAWN:
             fitness_sum = 0.0
             for _ in range(NUM_EPISODES_PER_GENOME):
-                fitness_sum += run_simulation(genome, config)
+                fitness_sum += simulation.run_simulation(genome, config)
             genome.fitness = fitness_sum / NUM_EPISODES_PER_GENOME
         else:
-            genome.fitness = run_simulation(genome, config)
+            genome.fitness = simulation.run_simulation(genome, config)
 
 
 # run the NEAT algorithm
@@ -50,7 +53,7 @@ def run_neat(config_file):
             print('Skipping replay')
         else:
             print('Replaying best genome')
-            replay(best_genome, config, gen_id=i)   
+            simulation.replay(best_genome, config, gen_id=i)   
 
     visualizer.filename = 'rocket_evolution.gif'
     visualizer.window.save_frames(visualizer.filename, visualizer.directory)

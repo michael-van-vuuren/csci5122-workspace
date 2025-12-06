@@ -4,6 +4,8 @@ import math
 import numpy as np
 from collections import defaultdict
 import configparser
+import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 
 from PIL import Image, ImageDraw, ImageFont
 import imageio
@@ -160,8 +162,11 @@ class Visualizer(neat.reporting.BaseReporter):
         self.previous_population = {}
         self.species_map = {}
 
+        self.fitness_history = []
+
         self.directory = 'gifs'
         self.filename = 'neat_progression.gif'
+        self.species_filename = 'species_fitness.png'
 
         # remove old frames
         os.makedirs(self.directory, exist_ok=True)
@@ -176,7 +181,18 @@ class Visualizer(neat.reporting.BaseReporter):
         self.species_map = new_map
 
     def post_evaluate(self, config, population, species, best_genome):
-        
+        # record max fitness per species
+        current_gen_stats = {}
+        for species_id, s in species.species.items():
+            member_fitnesses = [
+                population[gid].fitness 
+                for gid in s.members 
+                if gid in population and population[gid].fitness is not None
+            ]
+            if member_fitnesses:
+                current_gen_stats[species_id] = max(member_fitnesses)
+        self.fitness_history.append(current_gen_stats)
+
         # update species
         self.update_species_map(species)
         for gid, genome in population.items():
@@ -230,6 +246,51 @@ class Visualizer(neat.reporting.BaseReporter):
         self.window.save_frame()
         self.previous_population = dict(population)
         self.generation += 1
+
+    def save_species_graph(self, filename='species_fitness.png'):
+        if not self.fitness_history:
+            return
+
+        plt.figure(figsize=(12, 8), dpi=300)
+        
+        # all unique species ids
+        all_species = set()
+        for gen_stats in self.fitness_history:
+            all_species.update(gen_stats.keys())
+
+        sorted_species_ids = sorted(list(all_species))    
+        cmap = cm.get_cmap('Set2')
+        num_species = len(sorted_species_ids)
+        colors = [cmap(i / num_species) for i in range(num_species)]
+        species_color_map = {
+            species_id: colors[i] 
+            for i, species_id in enumerate(sorted_species_ids)
+        }
+            
+        # line for each species
+        for species_id in sorted(list(all_species)):
+            x = []
+            y = []
+            for gid, gen_stats in enumerate(self.fitness_history):
+                if species_id in gen_stats:
+                    x.append(gid)
+                    y.append(gen_stats[species_id])
+            if x:
+                plt.plot(x, y, 
+                label=f'Species {species_id}', 
+                color=species_color_map[species_id], 
+                linestyle='-',
+                linewidth=2.0
+            )
+
+        plt.title('Max Fitness by Species per Generation')
+        plt.xlabel('Generation')
+        plt.ylabel('Fitness')
+        plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
+        plt.grid(True, linestyle='--', alpha=0.7)
+        plt.tight_layout()
+        plt.savefig(filename)
+        plt.close()
 
     def draw_genome(self, genome, x_offset, genome_id, mutations=None):
         # 1. create layers of neural network
@@ -465,6 +526,7 @@ def main(config_file, train_x, train_y, test_x, test_y, loss_type=None):
     print(f'\nTest Accuracy: {accuracy * 100:.2f}%')
 
     # save the gif
+    visualizer.save_species_graph(visualizer.species_filename)
     visualizer.window.save_frames(visualizer.filename, visualizer.directory)
 
 

@@ -39,8 +39,8 @@ def run_neat(config_file):
     population.add_reporter(visualizer)
 
     # you can skip the first n_skip generations (N total)
-    skip_until = 0
-    N = 10
+    skip_until = 90
+    N = 100
     
     for i in range(N):
         print(f'Generation {i}')
@@ -56,4 +56,6 @@ def run_neat(config_file):
             simulation.replay(best_genome, config, gen_id=i)   
 
     visualizer.filename = 'rocket_evolution.gif'
+    visualizer.species_filename = 'rocket_species_fitness.png'
+    visualizer.save_species_graph(visualizer.species_filename)
     visualizer.window.save_frames(visualizer.filename, visualizer.directory)
